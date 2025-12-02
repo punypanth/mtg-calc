@@ -14,29 +14,82 @@
       --color-primary: rgb(99, 102, 241);
       --color-secondary: rgb(236, 72, 153);
       --color-success: rgb(16, 185, 129);
+      --color-text: #1f2937;
+      --color-muted: #6b7280;
+    }
+    * {
+      box-sizing: border-box;
     }
     body {
-      font-family: system-ui, sans-serif;
-      background: #f7f7f7;
-      margin: 2rem;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+      margin: 0;
+      min-height: 100vh;
+      padding: 2rem;
+      color: var(--color-text);
     }
     .panel {
       background: white;
       max-width: 1200px;
-      padding: 1.5rem 2rem;
-      border-radius: 14px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      margin: 0 auto;
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
       display: grid;
-      grid-template-columns: 220px 1fr;
-      grid-template-rows: auto 1fr;
+      grid-template-columns: 240px 1fr;
+      grid-template-rows: auto 1fr auto;
       gap: 1.5rem;
     }
     .panel > header {
       grid-column: 1 / -1;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 1rem;
+    }
+    .panel > header h2 {
+      margin: 0 0 0.25rem;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-text);
+    }
+    .panel > header p {
+      margin: 0;
+      color: var(--color-muted);
+    }
+    .instructions {
+      grid-column: 1 / -1;
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--color-muted);
+    }
+    .instructions strong {
+      color: var(--color-text);
+    }
+    .instructions ul {
+      margin: 0.5rem 0 0 0;
+      padding-left: 1.25rem;
+    }
+    .instructions li {
+      margin: 0.25rem 0;
+    }
+    .instructions code {
+      background: #e5e7eb;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.85em;
     }
     .controls {
       display: flex;
       flex-direction: column;
+      background: #fafafa;
+      padding: 1.25rem;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+    }
+    .controls label:first-child {
+      margin-top: 0;
     }
     .chart-container {
       min-height: 400px;
@@ -45,18 +98,62 @@
       display: block;
       font-weight: 600;
       margin-top: 1.2rem;
+      font-size: 0.9rem;
+      color: var(--color-text);
     }
     input[type="range"] {
       width: 100%;
       margin-top: 0.5rem;
-    }
-    canvas {
-      margin-top: 1.5rem;
+      accent-color: var(--color-primary);
     }
     .value-box {
-      font-weight: 600;
-      margin-left: 0.5rem;
-      color: #333;
+      font-weight: 700;
+      color: var(--color-primary);
+    }
+    .stat-box {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      text-align: center;
+    }
+    .stat-box b {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--color-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 0.25rem;
+    }
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-success);
+    }
+    .legend {
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: var(--color-muted);
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0.4rem 0;
+    }
+    .legend-color {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+    }
+    .legend-color.bar {
+      background: var(--color-secondary);
+      opacity: 0.4;
+      border: 1px solid var(--color-secondary);
+    }
+    .legend-color.line {
+      background: var(--color-success);
     }
   </style>
 </head>
@@ -64,8 +161,8 @@
 <body>
   <div class="panel">
     <header>
-      <h2 style="margin: 0 0 0.25rem;">100-Card Deck Probability Explorer</h2>
-      <p style="margin: 0; color: #666;">(Hopefully) useful for commander deck theorycrafting.</p>
+      <h2>100-Card Deck Probability Explorer</h2>
+      <p>Hypergeometric calculator for MTG Commander deck theorycrafting</p>
     </header>
 
     <div class="controls">
@@ -73,18 +170,45 @@
       <input id="sliderK" type="range" min="1" max="99" value="35" />
       <span><span id="valK" class="value-box">35</span> / 100</span>
 
-      <label for="sliderExtra">Extra draws</label>
+      <label for="sliderExtra">Extra Draws</label>
       <input id="sliderExtra" type="range" min="0" max="10" value="1" />
       <span id="valExtra" class="value-box">1</span>
 
-      <div style="margin-top: 1.5rem; font-size: 0.95rem; line-height: 1.4;">
-        <b>P(at least one target):</b><br />
-        <span id="atLeastOne" style="font-size: 1.3rem; font-weight: 700;">–</span>
+      <div class="stat-box">
+        <b>P(at least one target)</b>
+        <span id="atLeastOne" class="stat-value">–</span>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item">
+          <span class="legend-color line"></span>
+          <span>Cumulative (at least k)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color bar"></span>
+          <span>Exact (exactly k)</span>
+        </div>
       </div>
     </div>
 
     <div class="chart-container">
       <canvas id="chart"></canvas>
+    </div>
+
+    <div class="instructions">
+      <strong>How to use:</strong>
+      <ul>
+        <li><strong>Target Cards</strong> — 
+          How many cards match the desired category (e.g., lands, creatures, "the card you want to draw").</li>
+
+        <li><strong>Extra Draws</strong> — 
+          Cards drawn beyond your opening hand. This should be 1 on turn 1, since you draw your 8th card.</li>
+      </ul>
+      <p>The <span style="color: var(--color-success); font-weight: 600;">green line</span> calculates the probability of "at least this many" target cards. 
+      For example, if you're getting mana screwed, you should make sure the green line shows 95% or higher for 1 card. That means you have a 95% chance of getting at least 1 land.</p>
+      
+      <p>The <span style="color: var(--color-secondary); font-weight: 600;">pink bars</span> histogram the probability of drawing "exactly this many" target cards. 
+        I find this useful for imagining my hand's composition. The "peak" is the most likely number of target cards I'll be holding.</p>
     </div>
   </div>
 
