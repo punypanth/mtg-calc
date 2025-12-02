@@ -64,20 +64,20 @@
   <div class="panel">
     <header>
       <h2 style="margin: 0 0 0.25rem;">100-Card Deck Probability Explorer</h2>
-      <p style="margin: 0; color: #666;">Exact hypergeometric odds for a fixed 7-card opening hand and X additional draws.</p>
+      <p style="margin: 0; color: #666;">(Hopefully) useful for commander deck theorycrafting.</p>
     </header>
 
     <div class="controls">
-      <label for="sliderK">Desired cards (K)</label>
+      <label for="sliderK">Target Cards</label>
       <input id="sliderK" type="range" min="1" max="99" value="20" />
-      <span id="valK" class="value-box">20</span>
+      <span><span id="valK" class="value-box">20</span> / 100</span>
 
       <label for="sliderExtra">Extra draws</label>
       <input id="sliderExtra" type="range" min="1" max="10" value="3" />
       <span id="valExtra" class="value-box">3</span>
 
       <div style="margin-top: 1.5rem; font-size: 0.95rem; line-height: 1.4;">
-        <b>P(≥ 1 success):</b><br />
+        <b>P(at least one target):</b><br />
         <span id="atLeastOne" style="font-size: 1.3rem; font-weight: 700;">–</span>
       </div>
     </div>
@@ -208,7 +208,7 @@
             labels,
             datasets: [
               {
-                label: `P(X = k) Opening (${OPENING_HAND} cards)`,
+                label: `P(exactly k targets in ${OPENING_HAND} cards)`,
                 data: pmfOpening,
                 borderColor: chartColors.primary,
                 backgroundColor: chartColors.primaryAlpha,
@@ -216,7 +216,7 @@
                 borderWidth: 2,
               },
               {
-                label: `P(X = k) Total (${totalDraws} cards)`,
+                label: `P(exactly k targets in ${totalDraws} cards)`,
                 data: pmfTotal,
                 borderColor: chartColors.secondary,
                 backgroundColor: chartColors.secondaryAlpha,
@@ -224,7 +224,7 @@
                 borderWidth: 2,
               },
               {
-                label: `P(X ≥ k) Total (${totalDraws} cards)`,
+                label: `P(at least k targets in ${totalDraws} cards)`,
                 data: cumulativeTotal,
                 borderColor: chartColors.success,
                 backgroundColor: chartColors.successAlpha,
@@ -244,7 +244,7 @@
                 ticks: { callback: percentTickCallback },
               },
               x: {
-                title: { display: true, text: "Draws (k)" },
+                title: { display: true, text: "Cards" },
               },
             },
           },
