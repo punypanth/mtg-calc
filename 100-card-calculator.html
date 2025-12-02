@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>100-Card Deck Probability Explorer</title>
+
+  <!-- Chart.js pinned version -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f7f7f7;
+      margin: 2rem;
+    }
+    .panel {
+      background: white;
+      max-width: 950px;
+      padding: 1.5rem 2rem;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .section {
+      margin-bottom: 2rem;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-top: 1.2rem;
+    }
+    input[type=range] {
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+    canvas {
+      margin-top: 1.5rem;
+    }
+    .value-box {
+      font-weight: 600;
+      margin-left: 0.5rem;
+      color: #333;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="panel">
+    <h2>100-Card Deck Probability Explorer</h2>
+    <p>Exact hypergeometric odds for a fixed 7-card opening hand and X additional draws.</p>
+
+    <div class="section">
+      <label>Number of desired cards in deck (K)</label>
+      <input id="sliderK" type="range" min="1" max="99" value="20" oninput="updateUI()" />
+      <span id="valK" class="value-box">20</span>
+
+      <label>Additional draws (1–10)</label>
+      <input id="sliderExtra" type="range" min="1" max="10" value="3" oninput="updateUI()" />
+      <span id="valExtra" class="value-box">3</span>
+
+      <div style="margin-top:1rem; font-size:1.1rem;">
+        Chance of drawing <b>at least one</b> desired card in opening+extra: 
+        <span id="atLeastOne" style="font-weight:700;">–</span>
+      </div>
+    </div>
+
+    <h3>Probability Distribution (Exact k successes)</h3>
+    <canvas id="chart1" width="600" height="350"></canvas>
+
+    <h3>Cumulative Probability Distribution (P(X ≥ k))</h3>
+    <canvas id="chart2" width="600" height="350"></canvas>
+  </div>
+
+  <script>
+    // ---------- Combinatorics ----------
+    function comb(n, k) {
+      if (k < 0 || k > n) return 0;
+      if (k === 0 || k === n) return 1;
+      let r = 1;
+      for (let i = 1; i <= k; i++) {
+        r *= (n - (k - i)) / i;
+      }
+      return r;
+    }
+
+    // Hypergeometric PMF
+    function hypergeom(N, K, n, k) {
+      return comb(K, k) * comb(N - K, n - k) / comb(N, n);
+    }
+
+    // ---------- Charts ----------
+    let chart1, chart2;
+
+    const ctx1 = document.getElementById("chart1").getContext("2d");
+    const ctx2 = document.getElementById("chart2").getContext("2d");
+
+    function updateUI() {
+      const K = parseInt(document.getElementById("sliderK").value);
+      const extra = parseInt(document.getElementById("sliderExtra").value);
+
+      document.getElementById("valK").textContent = K;
+      document.getElementById("valExtra").textContent = extra;
+
+      updateCharts(K, extra);
+    }
+
+    function updateCharts(K, extra) {
+      const N = 100;
+      const n1 = 7;        // fixed opening
+      const n2 = 7 + extra;
+
+      const maxK = Math.min(K, n2);
+      const labels = Array.from({ length: maxK + 1 }, (_, i) => i);
+
+      const p1 = labels.map(k => hypergeom(N, K, n1, k));
+      const p2 = labels.map(k => hypergeom(N, K, n2, k));
+
+      // Cumulative distribution: P(X >= k)
+      const c2 = labels.map((k, idx) => p2.slice(idx).reduce((a,b)=>a+b,0));
+
+      // At least one
+      const atLeast1 = (1 - p2[0]) * 100;
+      document.getElementById("atLeastOne").textContent = atLeast1.toFixed(2) + "%";
+
+      // ----- Chart 1 -----
+      if (chart1) chart1.destroy();
+      chart1 = new Chart(ctx1, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: `Opening (7 draws)` ,
+              data: p1,
+              borderColor: "rgb(99,102,241)",
+              backgroundColor: "rgba(99,102,241,0.18)",
+              tension: 0.2,
+              borderWidth: 2
+            },
+            {
+              label: `Opening + ${extra} draws (${n2} total)` ,
+              data: p2,
+              borderColor: "rgb(236,72,153)",
+              backgroundColor: "rgba(236,72,153,0.18)",
+              tension: 0.2,
+              borderWidth: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              title: { display: true, text: "Probability (%)" },
+              beginAtZero: true,
+              ticks: { callback: v => (v * 100).toFixed(1) + "%" }
+            },
+            x: {
+              title: { display: true, text: "Exact Number of Successful Draws (k)" }
+            }
+          }
+        }
+      });
+
+      // ----- Chart 2 (cumulative) -----
+      if (chart2) chart2.destroy();
+      chart2 = new Chart(ctx2, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: `P(X ≥ k) after ${n2} draws`,
+              data: c2,
+              borderColor: "rgb(16,185,129)",
+              backgroundColor: "rgba(16,185,129,0.18)",
+              tension: 0.2,
+              borderWidth: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              title: { display: true, text: "Cumulative Probability (%)" },
+              beginAtZero: true,
+              ticks: { callback: v => (v * 100).toFixed(1) + "%" }
+            },
+            x: {
+              title: { display: true, text: "k (Minimum Successful Draws)" }
+            }
+          }
+        }
+      });
+    }
+
+    // Initialize
+    updateUI();
+  </script>
+</body>
+</html>
