@@ -7,6 +7,7 @@
 
   <!-- Chart.js pinned version -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
   <style>
     :root {
@@ -73,7 +74,7 @@
       <span><span id="valK" class="value-box">20</span> / 100</span>
 
       <label for="sliderExtra">Extra draws</label>
-      <input id="sliderExtra" type="range" min="1" max="10" value="3" />
+      <input id="sliderExtra" type="range" min="0" max="10" value="3" />
       <span id="valExtra" class="value-box">3</span>
 
       <div style="margin-top: 1.5rem; font-size: 0.95rem; line-height: 1.4;">
@@ -90,6 +91,9 @@
   <script>
     (() => {
       "use strict";
+
+      // Register datalabels plugin
+      Chart.register(ChartDataLabels);
 
       // ---------- Constants ----------
       const DECK_SIZE = 100;
@@ -183,8 +187,7 @@
         // X-axis: number of successes (0 to maxSuccesses)
         const labels = Array.from({ length: maxSuccesses + 1 }, (_, i) => i);
 
-        // PMF: P(X = k) for opening hand and total draws
-        const pmfOpening = labels.map((k) => hypergeometricPmf(DECK_SIZE, K, OPENING_HAND, k));
+        // PMF: P(X = k) for total draws only
         const pmfTotal = labels.map((k) => hypergeometricPmf(DECK_SIZE, K, totalDraws, k));
 
         // Cumulative: P(X >= k) for total draws
@@ -200,42 +203,60 @@
         const atLeast1Pct = cumulativeTotal[1] * 100; // P(X >= 1)
         elements.atLeastOne.textContent = `${atLeast1Pct.toFixed(2)}%`;
 
-        // ----- Single Combined Chart -----
+        // ----- Combined Chart -----
         if (chart) chart.destroy();
         chart = new Chart(elements.ctx, {
-          type: "line",
+          type: "bar",
           data: {
             labels,
             datasets: [
               {
-                label: `P(exactly k targets in ${OPENING_HAND} cards)`,
-                data: pmfOpening,
-                borderColor: chartColors.primary,
-                backgroundColor: chartColors.primaryAlpha,
-                tension: 0.2,
-                borderWidth: 2,
-              },
-              {
+                type: "bar",
                 label: `P(exactly k targets in ${totalDraws} cards)`,
                 data: pmfTotal,
-                borderColor: chartColors.secondary,
                 backgroundColor: chartColors.secondaryAlpha,
-                tension: 0.2,
-                borderWidth: 2,
+                borderColor: chartColors.secondary,
+                borderWidth: 1,
+                order: 2,
               },
               {
+                type: "line",
                 label: `P(at least k targets in ${totalDraws} cards)`,
                 data: cumulativeTotal,
                 borderColor: chartColors.success,
-                backgroundColor: chartColors.successAlpha,
+                backgroundColor: "transparent",
                 tension: 0.2,
-                borderWidth: 2,
-                borderDash: [5, 5],
+                borderWidth: 3,
+                pointRadius: 4,
+                pointBackgroundColor: chartColors.success,
+                order: 1,
               },
             ],
           },
           options: {
             responsive: true,
+            plugins: {
+              datalabels: {
+                display: (context) => context.dataset.type === "bar",
+                anchor: "end",
+                align: "end",
+                formatter: (value) => `${(value * 100).toFixed(0)}%`,
+                font: { size: 11, weight: "bold" },
+                color: chartColors.secondary,
+              },
+              tooltip: {
+                filter: (context) => context.dataset.type === "line",
+                displayColors: false,
+                callbacks: {
+                  title: () => "",
+                  label: (context) => {
+                    const pct = (context.raw * 100).toFixed(1);
+                    const k = context.label;
+                    return `${pct}% chance for at least ${k} targets`;
+                  },
+                },
+              },
+            },
             scales: {
               y: {
                 title: { display: true, text: "Probability" },
