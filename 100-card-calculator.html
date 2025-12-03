@@ -6,13 +6,22 @@
   <title>100-Card Deck Probability Explorer</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 
 <body>
   <div class="panel">
     <header>
-      <h2>100-Card Deck Probability Explorer</h2>
-      <p>Hypergeometric calculator for MTG Commander deck theorycrafting</p>
+      <div class="header-content">
+        <div>
+          <h2>100-Card Deck Probability Explorer</h2>
+          <p>Hypergeometric calculator for MTG Commander deck theorycrafting</p>
+        </div>
+        <a href="https://github.com/punypanth/mtg-calc" target="_blank" rel="noopener" 
+          class="github-link" title="Check it out on GitHub">
+          <i data-lucide="github"></i>
+        </a>
+      </div>
     </header>
 
     <div class="main-content">
@@ -203,6 +212,7 @@
       ui.targetsSlider.addEventListener("input", updateUI);
       ui.extraDrawsSlider.addEventListener("input", updateUI);
       updateUI();
+      lucide.createIcons();
     })();
   </script>
 
@@ -244,6 +254,18 @@
     }
     .panel > header h2 { margin: 0 0 0.25rem; font-size: 1.25rem; font-weight: 700; }
     .panel > header p { margin: 0; color: var(--color-muted); font-size: 0.875rem; }
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .github-link {
+      color: var(--color-muted);
+      transition: color 0.2s;
+      padding: 0.25rem;
+    }
+    .github-link:hover { color: var(--color-text); }
+    .github-link svg { width: 24px; height: 24px; }
     .main-content {
       display: flex;
       flex-direction: column;
